@@ -18,39 +18,17 @@ class BlogController extends Controller
     }
 
     public function index() {
+        $main_blog      = Blog::getMainBlog();
 
-        // $blog           = new Blog;
-        $main_blog      = Blog::select('id', 'title', 'slug', 'image', 'image_title', 'image_alt', 'content','page_title',
-                                        'page_description', 'publish_status','trending_status', 'main_status', 'created_at')
-                                        ->where('main_status', 1)
-                                        ->get();
         $main_blog = $main_blog[0]->toArray(); // возможно не исполнять эту строку если видоизменить следующуу
 
         $main_blog_id   = (!empty($main_blog)) ? $main_blog['id'] : false;
 
-//       $recent_blogs   = $blog->getRecentBlogs(true, 6, 0);
-        $recent_blogs   = Blog::select('id', 'title', 'slug', 'image', 'content', 'page_description','publish_status',
-                                       'trending_status','main_status','created_at')
-                                        ->where([
-                                            ['publish_status', '=', 1],
-                                            ['trending_status', '=', 1]
-                                        ])
-                                        ->limit(6)
-                                        ->get();
+        $recent_blogs   = Blog::getRecentBlogs(true);
 
-//        $trending_blogs = $blog->getTrendingBlogs(true, $main_blog_id);
-        $trending_blogs = Blog::select('id','title','slug','content','image','page_description','created_at')
-                                ->where([
-                                    ['publish_status', '=', 1],
-                                    ['trending_status', '=', 1]
-                                ])
-                                ->when($main_blog_id, function($query, $main_blog_id){
-                                    $query->where('id', '<>',  $main_blog_id);
-                                })
-                                ->get();
+        $trending_blogs = Blog::getTrendingBlogs(true, $main_blog_id);
 
         $response = array();
-
         $response['title']          = $this->pageTitle;
         $response['description']    = $this->pageMetaDescription;
         $response['main_blog']      = $main_blog;
@@ -65,34 +43,10 @@ class BlogController extends Controller
     public function show($slug) {
         $response       = array();
 
-        // $target_blog    = $blog->findBySlug($slug);
-        $target_blog    = Blog::select('id', 'title','page_description')
-                                ->where('slug', $slug)
-                                ->firstOrFail();
+        $target_blog    = Blog::findBySlug($slug);
 
-
-//        $trending_blogs = $blog->getTrendingBlogs(true, $target_blog['id']);
-        $trending_blogs = Blog::select('id','title','slug','content','image','page_description','created_at')
-                                ->where([
-                                    ['publish_status', '=', 1],
-                                    ['trending_status', '=', 1],
-                                    ['id', '<>', $target_blog['id']]
-                                ])
-                                ->limit(3)
-                                ->get();
-
-//        $related_blogs  = $blog->findRelatedBlogs($target_blog['id']);
-        $related_blogs  = Blog::select('blogs_related_blogs.related_blog_id','blogs.id','blogs.title','blogs.content','blogs.slug','blogs.created_at',
-                                'blogs.image','blogs.page_description')
-                                ->rightJoin('blogs_related_blogs','blogs.id','=', 'blogs_related_blogs.related_blog_id')
-                                ->where('blogs_related_blogs.blog_id',  $target_blog['id'])
-                                ->get();
-//        with relationship
-//        $related_blogs  = Blog::select('blogs.id','blogs.title','blogs.content','blogs.slug','blogs.created_at',
-//                                        'blogs.image','blogs.page_description')
-//                                        ->with('blogs_related_blogs')
-//                                        ->get();
-
+        $trending_blogs = Blog::getTrendingBlogs(true, $target_blog['id']);
+        $related_blogs  = Blog::findRelatedBlogs($target_blog['id']);
 
         $response['target_blog']    = $target_blog;
         $response['trending_blogs'] = $trending_blogs;
@@ -112,23 +66,9 @@ class BlogController extends Controller
         $offset = $request['offset'];
         $next_offset = $offset + 2;
 
+        $all_blogs_count = Blog::getAllBlogsCount();
+        $recent_blogs    = Blog::getRecentBlogs(true, $offset, 2);
 
-//        $all_blogs_count = $blog->getAllBlogsCount(true);
-        $all_blogs_count =  Blog::select('id')
-                                ->where([
-                                    ['publish_status', '=', 1],
-                                    ['main_status', '<>', 1]
-                                ])
-                                ->count();
-
-//        $recent_blogs    = $blog->getRecentBlogs(true, 2, $offset);
-        $recent_blogs    = Blog::select('id', 'title', 'slug', 'image', 'content', 'page_description','publish_status',
-                                        'trending_status','main_status','created_at')
-                                        ->where('publish_status', 1)
-                                        ->where('main_status','<>', 1)
-                                        ->offset($offset)
-                                        ->limit(2)
-                                        ->get();
 
         $has_next_page = $next_offset < $all_blogs_count;
         if(($recent_blogs)->count() > 0) {

@@ -16,8 +16,13 @@ class CreateBlogsRelatedBlogsTable extends Migration
         Schema::create('blogs_related_blogs', function (Blueprint $table) {
             $table->engine = "InnoDB";
             $table->id();
-            $table->foreignId('blog_id');
-            $table->smallInteger('related_blog_id');
+            $table->foreignId('blog_id')
+                    ->constrained()
+                    ->onDelete('cascade');
+            $table->foreignId('related_blog_id')
+                    ->references('id')
+                    ->on('blogs')
+                    ->onDelete('cascade');
 
             $table->timestamps();
         });
