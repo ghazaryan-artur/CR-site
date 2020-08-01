@@ -15,25 +15,7 @@ class AdminBlogController extends Controller
     public $params = [];
     public $data = [];
 
-//    function __construct() {
-//
-//        if(!isset($_SESSION['user'])) {
-//            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-//                header('HTTP/1.0 403 Forbidden');
-//                die;
-//            } else {
-//                header('Location: /admin');
-//                die;
-//            }
-//        }
-//
-//        $this->upload_dir = getcwd().'/public/uploads/';
-//        $this->params = array(
-//            'admin' => true,
-//            'admin_login' => false
-//        );
-//        $this->data = array();
-//    }
+
 
     public function index() {
         $response['recent_blogs']   = Blog::getRecentBlogs();
@@ -84,39 +66,7 @@ class AdminBlogController extends Controller
         $new_blog['main']             = $request['main'] ? 1 : 0;
 
 
-//        $new_blog['pageTitle']        = 'The Importance of EdTech During COVID-19';
-//        $new_blog['pageDescription']  = 'Online learning during COVID-19 steps up. Find out the best EdTech solutions used in various countries, updates by the private sector, post-COVID-19 EdTech.';
-//        $new_blog['bannerTitle']      = 'Get free consultation about technical solutions that will drive your business to success';
-//        $new_blog['bannerText']       = 'CodeRiders may become the ultimate solution for your software issues during Coronavirus pandemic.';
-//        $new_blog['bannerSlug']       = 'https://www.coderiders.am/services/custom-software-development';
-//        $new_blog['bannerSlugText']   = 'Grab your free consultation';
-//        $new_blog['title']            = 'The Importance of EdTech During COVID-19';
-//        $new_blog['slug']             = '2the-importance-of-edtech-during-covid-19';
-//        $new_blog['content']          = 'some content';
-//        $new_blog['image']            = 'hashhashhash';
-//        $new_blog['image_alt']        = 'Online learning with a book and a computer';
-//        $new_blog['image_title']      = 'EdTech is evolving IT industry especially during Covid-19';
-//        $new_blog['publish']          = 1;
-//        $new_blog['trend']            = 1;
-//        $new_blog['main']             = 0;
 
-//        $blog = new Blog;
-//        $blog->page_title = $new_blog['pageTitle'];
-//        $blog->page_description = $new_blog['pageDescription'];
-//        $blog->banner_title = $new_blog['bannerTitle'];
-//        $blog->banner_text = $new_blog['bannerText'];
-//        $blog->banner_slug = $new_blog['bannerSlug'];
-//        $blog->banner_slug_text = $new_blog['bannerSlugText'];
-//        $blog->title = $new_blog['title'];
-//        $blog->slug = $new_blog['slug'];
-//        $blog->content = $new_blog['content'];
-//        $blog->image = $new_blog['image'];
-//        $blog->image_title = $new_blog['image_title'];
-//        $blog->image_alt = $new_blog['image_alt'];
-//        $blog->publish_status = $new_blog['publish'];
-//        $blog->trending_status = $new_blog['trend'];
-//        $blog->main_status = $new_blog['main'];
-//        $blog->save();
 
 
 
