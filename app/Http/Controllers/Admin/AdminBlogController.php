@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Blog;
+use App\BlogsRelatedBlogs as Related;
 use App\BlogsRelatedBlogs;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class AdminBlogController extends Controller
 
 
     public function index() {
+
         $response['recent_blogs']   = Blog::getRecentBlogs();
         $response['trending_blogs'] = Blog::getTrendingBlogs();
         return view('admin.blog', $response);
@@ -28,9 +30,9 @@ class AdminBlogController extends Controller
         return view('admin.blogs', $response);
     }
 
-    public function create(Request $request) {
+    public function store(Request $request) {
 
-        $request->validate([
+            $request->validate([
             'pageTitle'       => 'required',
             'pageDescription' => 'required',
             'bannerTitle'     => 'required',
@@ -66,16 +68,12 @@ class AdminBlogController extends Controller
         $new_blog['main']             = $request['main'] ? 1 : 0;
 
 
-
-
-
-
         $create_blog = Blog::createOrUpdate($new_blog, "create", null, $request['relatedBlogs']);
 
-        $add_related = false;
+
         if($request['relatedBlogs']) {
             $related_blog = $request['relatedBlogs'];
-            BlogsRelatedBlogs::where('blog_id', $create_blog)->delete();
+            BlogsRelatedBlogs::where('blog_id', $create_blog)->delete(); // veradarnal
             $related_blogs_array = explode(",", $related_blog);
             foreach ($related_blogs_array as $id){
                 $relBlog = new BlogsRelatedBlogs;
@@ -88,138 +86,95 @@ class AdminBlogController extends Controller
             }
         }
 
-
         if($add_related && $create_blog) {
-            $_SESSION['message'] = "Blog has been successfully created!";
-            $_SESSION['message_type'] = "success";
-            $_SESSION['message_prefix'] = "Success!";
-            return redirect('/admin/blog');
-        } else {
-            $_SESSION['message'] = "Blog URL must be unique string, it must contain only letters, numbers and dashes.";
-            $_SESSION['message_type'] = "danger";
-            $_SESSION['message_prefix'] = "Error";
-            return redirect('/admin/blog/create');
+            return redirect('/admin/blog')->with(['message_prefix' => 'Success! ',
+                                                  'message' => 'Blog has been successfully created!',
+                                                  'color' => 'success']);
         }
-
-
-
+        return redirect('/admin/blog/create')->with(['message_prefix' => 'Error. ',
+                                                         'message' => 'Blog URL must be unique string, it must contain only letters, numbers and dashes.',
+                                                         'color' => 'danger']);
     }
 
-    public function update($id) {
-        $numeric_check = $this->checkNumeric($id);
-        if(!empty($numeric_check)) {
-            $_SESSION['message'] = "Invalid url!";
-            $_SESSION['message_type'] = "danger";
-            $_SESSION['message_prefix'] = "Error";
-            header('Location: /admin/blog');
-            die;
+    public function editPage($id) {
+        $blog = Blog::findOrFail($id);
+        $related_blogs = Related::select('related_blog_id')
+            ->where('blog_id',  $id)
+            ->get();
+        $response['blog'] = $blog;
+        $response['related_blogs'] = $related_blogs;
+        $response['page_title']    = "Blog Edit";
+        return view('admin.createOrUpdate', $response);
+    }
+
+    public function edit(Request $request, $id) {
+
+        $request->validate([
+            'pageTitle'       => 'required',
+            'pageDescription' => 'required',
+            'bannerTitle'     => 'required',
+            'bannerText'      => 'required',
+            'bannerSlug'      => 'required',
+            'bannerSlugText'  => 'required',
+            'title'           => 'required',
+            'slug'            => 'required',
+            'content'         => 'required',
+            'imageTitle'      => 'required',
+            'imageAlt'        => 'required',
+            'image'           => "file|mimes:jpg,jpeg,png|max:2048",
+        ]);
+
+        $new_blog = array();
+
+        $new_blog['pageTitle']        = $request->pageTitle;
+        $new_blog['pageDescription']  = $request->pageDescription;
+        $new_blog['bannerTitle']      = $request->bannerTitle;
+        $new_blog['bannerText']       = $request->bannerText;
+        $new_blog['bannerSlug']       = $request->bannerSlug;
+        $new_blog['bannerSlugText']   = $request->bannerSlugText;
+        $new_blog['title']            = $request->title;
+        $new_blog['content']          = $request->blogContent;
+        $new_blog['slug']             = $request->slug;
+        $new_blog['publish']          = $request->publishStatus ? 1 : 0;
+        $new_blog['trend']            = $request->trend ? 1 : 0;
+        $new_blog['main']             = $request->main ? 1 : 0;
+        $new_blog['image_title']      = $request->imageTitle;
+        $new_blog['image_alt']        = $request->imageAlt;
+
+        if($request->file('blogImage')){
+            $path = $request->file('blogImage')->store('images'); //directory name may be changes
+            $new_blog['image']        = Str::afterLast($path, '/');
+
         }
 
         $blog = new Blog;
-        $blog_checking = $blog->find('blogs', $id);
-        $related_blogs = $blog->findRelatedBlogs($id);
+        $add_related = true;
 
-        if(empty($blog_checking) || !isset($blog_checking[0])) {
-            $_SESSION['message'] = "No such blog!";
-            $_SESSION['message_type'] = "danger";
-            $_SESSION['message_prefix'] = "Error";
-            header('Location: /admin/blog');
-            die;
-        }
+        $update_blog = $blog->createOrUpdate($new_blog, "update", $id, $related_blog);
 
-        if($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $allowed_extentions = array('jpeg','jpg','png');
-            $new_blog = array();
-
-            $new_blog['pageTitle']        = $_POST['pageTitle'];
-            $new_blog['pageDescription']  = $_POST['pageDescription'];
-//            $new_blog['pageKeywords']     = $_POST['pageKeywords'];
-
-            $new_blog['bannerTitle']      = $_POST['bannerTitle'];
-            $new_blog['bannerText']       = $_POST['bannerText'];
-            $new_blog['bannerSlug']       = $_POST['bannerSlug'];
-            $new_blog['bannerSlugText']   = $_POST['bannerSlugText'];
-
-            $new_blog['title']            = $_POST['title'];
-            $new_blog['content']          = $_POST['content'];
-            $new_blog['slug']             = $_POST['slug'];
-
-            if(!empty($_FILES['blogImage']['name'])) {
-                $new_blog['image']        = $_FILES['blogImage'];
-            }
-            $new_blog['image_title']      = $_POST['imageTitle'];
-            $new_blog['image_alt']        = $_POST['imageAlt'];
-
-            (isset($_POST['publishStatus']))  ? $new_blog['publish'] = 1 : $new_blog['publish'] = 0;
-            (isset($_POST['trendingStatus'])) ? $new_blog['trend'] = 1   : $new_blog['trend'] = 0;
-            (isset($_POST['mainStatus']))     ? $new_blog['main'] = 1    : $new_blog['main'] = 0;
-
-            if(!empty($_FILES['blogImage']['name'])) {
-                $extention = explode('.', $new_blog['image']['name']);
-                $extention = end($extention);
-                if(!in_array(strtolower($extention), $allowed_extentions)) {
-                    $_SESSION['message'] = "This file extension is not allowed. Please upload a JPEG or PNG";
-                    $_SESSION['message_type'] = "danger";
-                    $_SESSION['message_prefix'] = "Error";
-                    header('Location: /admin/blog/create');
-                    die;
+        if($request->relatedBlogs) {
+            $related_blog = $request->relatedBlogs;
+            BlogsRelatedBlogs::where('blog_id', $update_blog)->delete(); // veradarnal
+            $related_blogs_array = explode(",", $related_blog);
+            foreach ($related_blogs_array as $id){
+                $relBlog = new BlogsRelatedBlogs;
+                $relBlog->blog_id = $update_blog;
+                $relBlog->related_blog_id = $id;
+                $add_related = $relBlog->save();
+                if(!$add_related){
+                    break;
                 }
-                if ($new_blog['image']['size'] > 2000000) {
-                    $_SESSION['message'] = "This file is more than 2MB. Sorry, it has to be less than or equal to 2MB";
-                    $_SESSION['message_type'] = "danger";
-                    $_SESSION['message_prefix'] = "Error";
-                    header('Location: /admin/blog/create');
-                    die;
-                }
-
-                $hash_image_name =   md5($new_blog['image']['name'].date('Y-m-d H:i:s:u')).".".$extention;
-                $full_hash_image_name = $this->upload_dir.$hash_image_name;
-
-                if(!file_exists($full_hash_image_name)) {
-
-                    $didUpload = move_uploaded_file($new_blog['image']['tmp_name'], $full_hash_image_name);
-                    if(!$didUpload) {
-                        $_SESSION['message'] = "This file is more than 2MB. Sorry, it has to be less than or equal to 2MB";
-                        $_SESSION['message_type'] = "danger";
-                        $_SESSION['message_prefix'] = "Error";
-                        header('Location: /admin/blog/create');
-                        die;
-                    }
-                }
-                $new_blog['image'] = $hash_image_name;
-
-                if(file_exists($this->upload_dir.$blog_checking[0]['image'])) {
-                    unlink($this->upload_dir.$blog_checking[0]['image']);
-                }
-            }
-            $blog = new Blog;
-            $related_blog = true;
-
-            $update_blog = $blog->createOrUpdate($new_blog, "update", $id, $related_blog);
-
-            if($related_blog) {
-                $related_blog = $_POST['relatedBlogs'];
-
-                $add_realted = $blog->addRelatedBlogs($id, $related_blog);
-                if($add_realted) {
-                    $update_blog = true;
-                }
-            }
-
-            if($update_blog) {
-                $_SESSION['message'] = "Blog has been successfully updated!";
-                $_SESSION['message_type'] = "success";
-                $_SESSION['message_prefix'] = "Success";
-                header('Location: /admin/blog');
-                die;
             }
         }
 
-        $this->data['page_title']    = "Blog Edit";
-        $this->data['blog']          = $blog_checking[0];
-        $this->data['related_blogs'] = $related_blogs;
-
-        $this->view->render('blogCreate', $this->data, $this->params);
+        if($add_related && $update_blog) {
+            return redirect('/admin/blog')->with(['message_prefix' => 'Success! ',
+                                                'message' => 'Blog has been successfully updated!',
+                                                'color' => 'success']);
+        }
+        return redirect('/admin/blog/create')->with(['message_prefix' => 'Error. ',
+                                                'message' => 'Blog URL must be unique string, it must contain only letters, numbers and dashes.',
+                                                'color' => 'danger']);
     }
 
     public function delete() {

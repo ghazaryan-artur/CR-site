@@ -7,16 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Blog extends Model
 {
-    public function blogs_related_blogs()
-    {
-        return $this->hasMany('App\Blogs_related_blogs');
-    }
-    // im gratci avart
     public static function getMainBlog() {
         return self::select('id', 'title', 'slug', 'image', 'image_title', 'image_alt', 'content','page_title',
                             'page_description', 'publish_status','trending_status', 'main_status', 'created_at')
                     ->where('main_status', 1)
-                    ->get();
+                    ->first();
     }
     public static function getByCount($limit) {
         return self::select('title', 'slug', 'image')
@@ -25,31 +20,7 @@ class Blog extends Model
             ->get();
     }
 
-    public function findByTerm($select, $term, $ids = false) {
-    $related_blogs = array();
-    $where = '';
-    if(empty($select)) {
-        return $related_blogs;
-    }
 
-    $select = implode(',',$select);
-
-    if($ids !== false && $ids !== '') {
-        $where = " AND `id` NOT IN (".$ids.")";
-    }
-
-    $term = $this->con->real_escape_string($term);
-
-    $query = "SELECT ".$select." FROM `blogs` WHERE `title` LIKE '%".$term."%'".$where;
-    $result = $this->con->query($query);
-
-    if($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            array_push($related_blogs, $row);
-        }
-    }
-    return $related_blogs;
-}
 
     public static function getAllBlogsCount() {
         return self::select('id')
@@ -66,23 +37,6 @@ class Blog extends Model
                     ->firstOrFail();
     }
 
-    public function getAllBlogs() {
-        $blogs = array();
-
-        $query = "SELECT * FROM `blogs` ORDER BY `id` DESC";
-        $result = $this->con->query($query);
-
-        if(!$result->num_rows) {
-            return $blogs;
-        }
-        if($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                array_push($blogs, $row);
-            }
-        }
-        return $blogs;
-    }
-
     public static function  getRecentBlogs($published = false, $skip = 0, $take = 6) {
         return self::select('id', 'title', 'slug', 'image', 'content', 'page_description','publish_status',
                         'trending_status','main_status','created_at')
@@ -96,6 +50,7 @@ class Blog extends Model
                         ->take($take)
                         ->get();
     }
+
 
     public static function getTrendingBlogs($publised = false, $except_id = false) {
         return self::select('id','title','slug','content','image','page_description','created_at')
@@ -158,23 +113,23 @@ class Blog extends Model
             $result = $blog->save();
         } else {
 
-            $image_update = '';
-            if(isset($blog['image'])) {
-                $image_update = "`image` = '".$blog['image']."'";
-            }
-
-            $query = "UPDATE `blogs` SET `page_title` = '".$blog['pageTitle']."',
-                          `page_description` = '".$blog['pageDescription']."', `page_keywords` = '".$blog['pageKeywords']."',
-                          `banner_title` = '".$blog['bannerTitle']."', `banner_text` = '".$blog['bannerText']."',
-                          `banner_slug` = '".$blog['bannerSlug']."', `banner_slug_text` = '".$blog['bannerSlugText']."',
-                          `title` = '". $blog['title']."', `content` = '".$blog['content']."', `slug` = '".$blog['slug']."'";
-
-            if(!empty($image_update)) {
-                $query .= ", " . $image_update;
-            }
-            $query .=  ", `image_title` = '".$blog['image_title']."', `image_alt` = '".$blog['image_alt']."',
-                          `publish_status` = '".$blog['publish']."', `trending_status` = '".$blog['trend']."',
-                          `main_status` = '".$blog['main']."' WHERE `id` = " . $id;
+//            $image_update = '';
+//            if(isset($blog['image'])) {
+//                $image_update = "`image` = '".$blog['image']."'";
+//            }
+//
+//            $query = "UPDATE `blogs` SET `page_title` = '".$blog['pageTitle']."',
+//                          `page_description` = '".$blog['pageDescription']."', `page_keywords` = '".$blog['pageKeywords']."',
+//                          `banner_title` = '".$blog['bannerTitle']."', `banner_text` = '".$blog['bannerText']."',
+//                          `banner_slug` = '".$blog['bannerSlug']."', `banner_slug_text` = '".$blog['bannerSlugText']."',
+//                          `title` = '". $blog['title']."', `content` = '".$blog['content']."', `slug` = '".$blog['slug']."'";
+//
+//            if(!empty($image_update)) {
+//                $query .= ", " . $image_update;
+//            }
+//            $query .=  ", `image_title` = '".$blog['image_title']."', `image_alt` = '".$blog['image_alt']."',
+//                          `publish_status` = '".$blog['publish']."', `trending_status` = '".$blog['trend']."',
+//                          `main_status` = '".$blog['main']."' WHERE `id` = " . $id;
         }
 
         if($result) {
@@ -187,85 +142,11 @@ class Blog extends Model
         }
     }
 
-    public function publishOrUnpublish($id, $publish_status) {
-    $id = $this->con->real_escape_string($id);
-
-    $query = "UPDATE `blogs` SET `publish_status` = ".$publish_status." WHERE `id` = " . $id;
-
-    if ($this->con->query($query)) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-    public function trendOrUntrend ($id, $trend_status) {
-    $id = $this->con->real_escape_string($id);
-    $after_update = false;
-
-    if($trend_status == 1) {
-        $query = "SELECT `id` FROM `blogs` WHERE trending_status = 1 ORDER BY `id` ASC";
-        $result = $this->con->query($query);
-
-        if($result) {
-            if($result->num_rows >= 3) {
-                $row = $result->fetch_assoc();
-                $untrending_id = $row['id'];
-                $after_update = true;
-            }
-        }
-    }
-
-    $query = "UPDATE `blogs` SET `trending_status` = ".$trend_status." WHERE `id` = " . $id;
-
-    if ($this->con->query($query)) {
-        if($after_update) {
-            $query = "UPDATE `blogs` SET `trending_status` = 0 WHERE id = ".$untrending_id;
-            if($this->con->query($query)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-    public function mainOrUnmain($id, $main_status) {
-    $id = $this->con->real_escape_string($id);
-    $after_update = false;
-
-    if($main_status) {
-        $after_update = true;
-    }
-
-    $query = "UPDATE `blogs` SET `main_status` = ".$main_status." WHERE `id` = " . $id;
-
-    if ($this->con->query($query)) {
-
-        if($after_update) {
-            $query = "UPDATE `blogs` SET `main_status` = 0 WHERE `id` <> ".$id." AND `main_status` = 1";
-            if($this->con->query($query)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
-
     public static function findRelatedBlogs($id) {
         return self::select('blogs_related_blogs.related_blog_id','blogs.id','blogs.title','blogs.content','blogs.slug','blogs.created_at',
                     'blogs.image','blogs.page_description')
                     ->rightJoin('blogs_related_blogs','blogs.id', '=', 'blogs_related_blogs.related_blog_id')
                     ->where('blogs_related_blogs.blog_id',  $id)
-                    ->toSql();
+                    ->get();
     }
 }

@@ -1,7 +1,9 @@
 {{ 'Welcome to Admin Blog page, Content will be soon!' }}
-<form method="POST" action="/admin/blog/create" enctype="multipart/form-data">
+<?php $id = 6; ?>
+
+<form method="POST" action="/admin/blog/store" enctype="multipart/form-data">
     {{ csrf_field() }}
-        <input type="text" name="pageTitle">
-<input type="submit">
+    <input type="file" name="g">
+    <input type="submit">
 </form>
 {{ $errors->first('blogImage') ?? '' }}

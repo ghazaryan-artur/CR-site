@@ -8,29 +8,18 @@ use App\Blog;
 
 class BlogController extends Controller
 {
-    private $pageTitle = 'Custom Software Development Company Blog | CodeRiders';
-    private $pageMetaDescription = 'The latest research-driven software development articles and news on web development and design, custom software development, software outsource, etc.';
-    private $basePath;
-
-
-    function __construct(){
-        $this->basePath = "http" . (($_SERVER['SERVER_PORT'] == 443) ? "s" : "") . "://" . $_SERVER['HTTP_HOST'];
-    }
 
     public function index() {
         $main_blog      = Blog::getMainBlog();
 
-        $main_blog = $main_blog[0]->toArray(); // возможно не исполнять эту строку если видоизменить следующуу
-
-        $main_blog_id   = (!empty($main_blog)) ? $main_blog['id'] : false;
+        $main_blog_id   = $main_blog ? $main_blog->id : false;
 
         $recent_blogs   = Blog::getRecentBlogs(true);
-
         $trending_blogs = Blog::getTrendingBlogs(true, $main_blog_id);
 
         $response = array();
-        $response['title']          = $this->pageTitle;
-        $response['description']    = $this->pageMetaDescription;
+        $response['title']          = 'Custom Software Development Company Blog | CodeRiders';;
+        $response['description']    = 'The latest research-driven software development articles and news on web development and design, custom software development, software outsource, etc.';
         $response['main_blog']      = $main_blog;
         $response['recent_blogs']   = $recent_blogs;
         $response['trending_blogs'] = $trending_blogs;
@@ -56,8 +45,11 @@ class BlogController extends Controller
     }
 
     public function load(Request $request) {
+
         $response = array();
+
         $request['offset'] = 1; // temporary row
+
 
         if(!isset($request['offset'])) {
             abort(404);
@@ -69,9 +61,8 @@ class BlogController extends Controller
         $all_blogs_count = Blog::getAllBlogsCount();
         $recent_blogs    = Blog::getRecentBlogs(true, $offset, 2);
 
-
         $has_next_page = $next_offset < $all_blogs_count;
-        if(($recent_blogs)->count() > 0) {
+        if($recent_blogs->count() > 0) {
 
             foreach ($recent_blogs as $key => $value) {
 
@@ -81,10 +72,11 @@ class BlogController extends Controller
 
                 $recent_blogs[$key]['created_at'] = $date;
                 $recent_blogs[$key]['content'] = $content;
-                $recent_blogs[$key]['twitter_link']  = $this->generateTwitterLink($value['slug']);
-                $recent_blogs[$key]['facebook_link'] = $this->generateFacebookLink($value['slug']);
-                $recent_blogs[$key]['linkedin_link'] = $this->generateLinkedInLink($value['slug'], $value['title'], $value['page_description']);
-                $recent_blogs[$key]['google_link']   = $this->generateGooglePlusLink($value['slug']);
+                $recent_blogs[$key]['twitter_link']  = 'https://twitter.com/intent/tweet?url=' . url("/") . '/blog/' . $value['slug'];
+                $recent_blogs[$key]['facebook_link'] = url("/") . '/blog/' . $value['slug'];
+                $recent_blogs[$key]['linkedin_link'] = 'https://www.linkedin.com/shareArticlemini=true&url=' . url("/")
+                                                    . '/blog/' . $value['slug'] . '&title=' . urlencode($value['title']) . '&summary='
+                                                    . urlencode($value['page_description']) . '&source=' . url("/") . '/blog/' . $value['slug'];
             }
 
             $response['blogs']         = $recent_blogs;
@@ -99,20 +91,5 @@ class BlogController extends Controller
         return response($response);
     }
 
-    private function generateTwitterLink($slug) {
-        return 'https://twitter.com/intent/tweet?url=' . $this->basePath . '/blog/' . $slug;
-    }
 
-    private function generateFacebookLink($slug) {
-        return $this->basePath . '/blog/' . $slug;
-    }
-
-    private function generateLinkedInLink($slug, $title, $description) {
-        return
-            'https://www.linkedin.com/shareArticlemini=true&url=' . $this->basePath . '/blog/' . $slug . '&title=' . urlencode($title) . '&summary=' . urlencode($description) . '&source=' . $this->basePath . '/blog/' . $slug;
-    }
-
-    private function generateGooglePlusLink($slug) {
-        return 'https://plus.google.com/share?url=' . $this->basePath . '/blog/' . $slug;
-    }
 }

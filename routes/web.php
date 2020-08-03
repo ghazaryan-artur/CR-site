@@ -13,27 +13,31 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Auth::routes();
-Route::group(['prefix' => 'admin',  'middleware' => 'auth'], function(){
+Route::group(['prefix' => 'admin'], function(){ //,  'middleware' => 'auth'
     Route::get('/blog', 'Admin\AdminBlogController@index');
     Route::get('/blog/list', 'Admin\AdminBlogController@show');//may be post
-    Route::get('/blog/create', function(){
+    Route::get('/blog/store', function(){
         $response['page_title'] = "Blog Create";
         $response['admin'] = true;
         $response['admin_login'] = false;
-        view('createBlog', $response);
+        return view('admin.createOrUpdate', $response);
     });
-    Route::post('/admin/blog/create/new', 'Admin\AdminBlogController@create');
+    Route::post('/blog/store', 'Admin\AdminBlogController@store');
+    Route::get('/blog/edit/{id}', 'Admin\AdminBlogController@editPage');
+    Route::post('/blog/edit/{id}', 'Admin\AdminBlogController@edit');
 });
-
 
 Route::get('', 'HomeController@index');
 
-Route::get('/blog', 'BlogController@index');
-Route::get('/blog/{slug}', 'BlogController@show');
+Route::prefix('/blog')->group(function (){
+    Route::get('', 'BlogController@index');
+    Route::get('/load', 'BlogController@load');
+    Route::get('/{slug}', 'BlogController@show');
+});
 
 Route::get('company-why-us', 'CompanyController@index');
 
-Route::prefix('/services')->group(function () {
+Route::prefix('/services')->group(function (){
     Route::get('', function(){
         $response['title'] = 'Web, Mobile and Custom Software Development Services | CodeRiders';
         $response['description'] = 'Professional software development services offering web/mobile development and design, custom software development, software outsourcing and IT consulting.';
@@ -62,11 +66,11 @@ Route::prefix('/services')->group(function () {
         $response['title'] = 'Software Development Outsourcing, IT Consulting | CodeRiders';
         $response['description'] = 'We can completely outsource your software development project or provide IT consulting to make better decisions.';
         $response['target_blog']['image']['full_url'] = Config::get('constants.servImg');
-        return view('outsors', $response);
+        return view('outsours', $response);
     });
 });
 
-Route::prefix('/solutions')->group(function () {
+Route::prefix('/solutions')->group(function (){
     Route::get('', function(){
         $response['title'] = 'Business Software Solutions | CodeRiders';
         $response['description'] = 'Custom software solutions for business. Creating e-Commerce, BI, CRM solutions, integrating APIs, developing big data analytics and real time solutions.';
@@ -138,37 +142,9 @@ Route::get('/privacy-policy', function(){
 
 
 
-Route::get('/a', 'ContactUsController@send');
-//Auth::routes();
-
-// temporary route
-Route::get('/admin/blog', 'Admin\AdminBlogController@index');
-Route::get('/cr', 'Admin\AdminBlogController@create');
-
-// sendgreed tests 1
-//Route::get('/b', 'SomeController@sendEmail');
 
 
-//sendgreed tests 2
-//Route::any ( 'sendemail', function () {
-//    if (Request::get ( 'message' ) != null) {
-//        $data = array(
-//            'bodyMessage' => Request::get('message')
-//        );
-//    } else {
-//        $data [] = '';
-//        Mail::send('email', $data, function ($message) {
-//
-//            $message->from('ghazaryan.artur1@gmail.com', 'Just Laravel');
-//
-//            $message->to(Request::get('toEmail'))->subject('Just Laravel demo email using SendGrid');
-//        });
-//    }
-////    return Redirect::back ()->withErrors ( [
-////        'Your email has been sent successfully'
-////    ] );
-//    return view('emails.test')->with('res', 'Your email has been sent successfully');
-//} );
+
 
 
 

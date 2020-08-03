@@ -4,5 +4,4 @@
     {{ 'Welcome to Blog page! Content Coming soon ... ' }}
 
 
-
 @endsection
